@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState } from 'react';
 import { Searchbar } from './Searchbar/Searchbar';
 import { getImg } from 'components/API/Api';
 import { ImageGallery } from './ImageGallery/ImageGallery';
@@ -6,61 +6,53 @@ import { LoadButton } from './Button/Button';
 import css from './App.module.css';
 import { ColorRing } from 'react-loader-spinner';
 import { Modal } from './Modal/Modal';
+// eslint-disable-next-line no-unused-vars
 import { Element, animateScroll as scroll, scroller } from 'react-scroll';
 
-export class App extends Component {
-  state = {
-    value: '',
-    page: 2,
-    dataImgs: [],
-    isLoad: false,
-    isModal: false,
-    link: '',
-    totalImg: 0,
-  };
+export const App = () => {
+  const [value, setValue] = useState('');
+  const [page, setPage] = useState(2);
+  const [dataImgs, setDataImgs] = useState([]);
+  const [isLoad, setIsLoad] = useState(false);
+  const [isModal, setIsModal] = useState(false);
+  const [link, setLink] = useState('');
+  const [totalImg, setTotalImg] = useState(0);
 
-  loadImg = (value, page) => {
-    this.setState({ isLoad: true });
+  const loadImg = (value, page) => {
+    setIsLoad(true);
     getImg(value, page)
       .then(data => {
-        console.log(data);
-        this.setState({ totalImg: data.total });
+        setTotalImg(data.total);
         if (data.hits.length === 0) {
           alert('no matching images');
-          // не работает без этого импорта (не знаю почему), а гит не разрешает пушить
-          console.log(scroll);
         }
-        data.hits.map(({ id, webformatURL, largeImageURL, tags }) =>
-          this.setState(prevState => {
-            return {
-              dataImgs: [
-                ...prevState.dataImgs,
-                { id, webformatURL, largeImageURL, tags },
-              ],
-            };
-          })
-        );
+        return data.hits.map(({ id, webformatURL, largeImageURL, tags }) => {
+          return setDataImgs(prevData => [
+            ...prevData,
+            { id, webformatURL, largeImageURL, tags },
+          ]);
+        });
       })
       .finally(() => {
-        this.setState({ isLoad: false });
+        setIsLoad(false);
       });
   };
 
-  onSubmit = value => {
+  const onSubmit = value => {
     if (value.trim() === '') {
       return;
     }
-    this.setState({ page: 2 });
-    this.setState({ value });
-    this.loadImg(value);
-    this.setState({ dataImgs: [] });
+    setPage(2);
+    setValue(value);
+
+    setDataImgs([]);
+    loadImg(value);
+    console.log(value);
   };
 
-  onLoadMore = () => {
-    this.setState(prevState => {
-      return { page: prevState.page + 1 };
-    });
-    this.loadImg(this.state.value, this.state.page);
+  const onLoadMore = () => {
+    setPage(page + 1);
+    loadImg(value, page);
     scroller.scrollTo('myScrollToElement', {
       duration: 1000,
       delay: 100,
@@ -69,38 +61,32 @@ export class App extends Component {
     });
   };
 
-  onHideModal = evt => {
+  const onHideModal = evt => {
+    console.log(evt);
     if (evt.code === 'Escape') {
-      this.setState({ isModal: false });
+      setIsModal(false);
     }
   };
 
-  onClickModalOpen = img => {
-    this.setState({ link: img });
-    this.setState({ isModal: true });
+  const onClickModalOpen = img => {
+    setLink(img);
+    setIsModal(true);
   };
-
-  render() {
-    const { dataImgs, isLoad, totalImg, link, isModal } = this.state;
-    return (
-      <div className={css.app}>
-        <Searchbar onSubmit={this.onSubmit}></Searchbar>
-        <ImageGallery
-          onClickModalOpen={this.onClickModalOpen}
-          imgCards={dataImgs}
-        />
-        {isLoad && (
-          <div className={css.loadingWrapper}>
-            <ColorRing />
-          </div>
-        )}
-        {dataImgs.length !== 0 && !isLoad && totalImg !== dataImgs.length && (
-          <Element className={css.scrollEl} name="myScrollToElement">
-            <LoadButton onLoadMore={this.onLoadMore} />
-          </Element>
-        )}
-        {isModal && <Modal takeImg={link} onHideModal={this.onHideModal} />}
-      </div>
-    );
-  }
-}
+  return (
+    <div className={css.app}>
+      <Searchbar onSubmit={onSubmit}></Searchbar>
+      <ImageGallery onClickModalOpen={onClickModalOpen} imgCards={dataImgs} />
+      {isLoad && (
+        <div className={css.loadingWrapper}>
+          <ColorRing />
+        </div>
+      )}
+      {dataImgs.length !== 0 && !isLoad && totalImg !== dataImgs.length && (
+        <Element className={css.scrollEl} name="myScrollToElement">
+          <LoadButton onLoadMore={onLoadMore} />
+        </Element>
+      )}
+      {isModal && <Modal takeImg={link} onHideModal={onHideModal} />}
+    </div>
+  );
+};
